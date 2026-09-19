@@ -56,6 +56,22 @@ Pull-to-refresh works on both list screens.
 
 ---
 
+## Screenshots
+
+| Home | Search | Map mode |
+|---|---|---|
+| ![Home screen with search bar and featured properties](docs/Home.jpg) | ![Search results with filter chips applied](docs/Search.jpg) | ![Map mode showing properties plotted by coordinate](docs/MapMode.jpg) |
+
+| Property details | Price breakdown | Saved |
+|---|---|---|
+| ![Property details with photo gallery and specs](docs/PropertyDetails.jpg) | ![All-inclusive price breakdown and agent contact](docs/Details2.jpg) | ![Saved properties list](docs/Saved.jpg) |
+
+Empty state when nothing has been saved yet:
+
+![Saved screen empty state](docs/SavedEmptyState.jpg)
+
+---
+
 ## Stack
 
 | Concern | Choice |
