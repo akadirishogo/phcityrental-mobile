@@ -4,7 +4,7 @@ import { useProperty } from '@/features/property/useProperty';
 import { useSavedProperties } from '@/features/saved/SavedPropertiesProvider';
 import { colors, radius, spacing, type } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -55,8 +55,6 @@ export default function PropertyDetailsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: property.location.split(',')[0] }} />
-
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View>
           {property.images.length > 0 ? (

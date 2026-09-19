@@ -1,35 +1,35 @@
-# PHCityRent — Property Discovery (Mobile)
+# PHCityRentals — Mobile
 
-A React Native property-discovery slice for PHCityRent: search verified rentals in Port
-Harcourt, view them as a list or on a map, inspect a property, and save it for later.
+A React Native app for discovering verified rental properties in Port Harcourt. Search by
+location and budget, browse results as a list or on a map, inspect a property in detail, and
+save the ones worth coming back to.
 
-Built for the PHCityRent Mobile Engineer take-home assessment. Shares its domain layer with
-the web submission.
+Built with Expo and TypeScript for the PHCityRent Mobile Engineer take-home assessment.
 
 ---
 
 ## Running it
 
-**Requirements:** Node.js 20.19.4+ (developed on 24.21). No API keys, no accounts, no native build.
+No API keys, no accounts, no native build required. **Node.js 20.19.4 or newer** (developed on 24.21).
 
 ```bash
-git clone <REPO_URL>
-cd phcityrent-mobile
+git clone https://github.com/akadirishogo/phcityrental-mobile.git
+cd phcityrental-mobile
 npm install
 npx expo start
 ```
 
-Then pick whichever is easiest:
+Then choose whichever is easiest for you:
 
-| How | What to do |
-|---|---|
-| **Physical device** (recommended) | Install **Expo Go**, scan the QR code in the terminal |
-| **Browser** | Press `w` — runs via react-native-web |
-| **iOS Simulator** | Press `i` (requires Xcode) |
-| **Android Emulator** | Press `a` (requires Android Studio) |
+| Option | What to do | Needs |
+|---|---|---|
+| **Physical device** — recommended | Scan the QR code in your terminal | The free **Expo Go** app |
+| **Browser** | Press `w` | Nothing |
+| **iOS Simulator** | Press `i` | Xcode |
+| **Android Emulator** | Press `a` | Android Studio |
 
-The app deliberately stays inside managed Expo Go — no custom native modules — so it runs
-without a native toolchain.
+The app stays entirely within managed Expo Go — no custom native modules — specifically so
+it can be run without a native toolchain.
 
 ```bash
 npm test     # 17 tests
@@ -37,17 +37,36 @@ npm test     # 17 tests
 
 ---
 
-## Tech stack
+## What it does
+
+**Home** — a persistent search bar that stays fixed while featured verified properties scroll
+beneath it. Submitting a location hands off to the Search screen.
+
+**Search** — filter by location (debounced as you type), price band, bedrooms, property type
+and verified status. Results render as a virtualised list, or as a map mode showing the same
+filtered set plotted by coordinate.
+
+**Property details** — swipeable photo gallery with a position counter, a full all-inclusive
+price breakdown, amenities, verification status, and agent contact that opens the phone
+dialler or mail client.
+
+**Saved** — save or unsave from any screen. Choices persist across app restarts.
+
+Pull-to-refresh works on both list screens.
+
+---
+
+## Stack
 
 | Concern | Choice |
 |---|---|
-| Framework | React Native 0.86 + Expo SDK 57 + TypeScript |
-| Navigation | Expo Router (file-based) |
+| Framework | React Native 0.86, Expo SDK 57, TypeScript |
+| Navigation | Expo Router — file-based routing |
 | Server state | TanStack React Query 5 |
-| Local persistence | AsyncStorage |
+| Persistence | AsyncStorage |
 | Images | `expo-image` |
 | Icons | `@expo/vector-icons` |
-| Data | Static TypeScript mock, 40 properties |
+| Data | Static TypeScript mock — 40 properties |
 | Tests | Vitest |
 
 ---
@@ -56,22 +75,22 @@ npm test     # 17 tests
 
 ```
 src/
-├── core/              Shared domain layer — no React, no React Native, no DOM
+├── core/              Domain layer — deliberately free of React, React Native and DOM
 │   ├── types.ts           Property, SearchFilters, PropertyType
 │   ├── queryKeys.ts       React Query cache key factory
-│   ├── domains/pricing.ts Price breakdown + currency formatting
+│   ├── domains/pricing.ts Price breakdown and currency formatting
 │   └── mock/properties.ts 40 mock properties
 │
-├── api/client.ts      Data access. Swap this file for a real API; nothing else changes.
+├── api/client.ts      The only file that knows where data comes from
 │
-├── app/               Expo Router routes — file path is the route
-│   ├── _layout.tsx        Root stack + providers
+├── app/               Expo Router — the file path IS the route
+│   ├── _layout.tsx        Root stack, providers
 │   ├── (tabs)/
 │   │   ├── _layout.tsx    Tab bar
 │   │   ├── index.tsx      Home
-│   │   ├── search.tsx     Search (list + map modes)
+│   │   ├── search.tsx     Search — list and map modes
 │   │   └── saved.tsx      Saved
-│   └── property/[id].tsx  Details — outside (tabs), so it pushes over the tab bar
+│   └── property/[id].tsx  Details — outside (tabs) by design
 │
 ├── components/        PropertyCard, PropertyImage, PropertyMapView, Wordmark
 ├── features/          useProperties, useProperty, SavedPropertiesProvider
@@ -79,65 +98,75 @@ src/
 └── theme.ts           Colour, spacing, radius and type tokens
 ```
 
-### `core/` and `api/` are shared with the web submission, byte for byte
+### Navigation hierarchy comes from file placement
 
-They contain no React, no DOM and no React Native imports, so they were copied across
-unchanged — types, mock data, query keys, pricing rules and the data client. The 17 tests
-came with them and pass in both projects without modification.
+`(tabs)` is a route group — the parentheses organise files without adding a URL segment, so
+`(tabs)/search.tsx` is the route `/search`. Those three screens share a tab bar.
 
-This is enforced rather than assumed: the test suite runs in a **Node** environment, so any
-accidental browser or native dependency in those layers fails the build. That caught a real
-bug during development — see AI disclosure.
+`property/[id].tsx` sits **outside** that group deliberately. Being a sibling of the tab group
+rather than a member of it is what makes a property push over the tab bar as a full screen
+with a native back button, instead of rendering inside whichever tab you came from. The
+correct back behaviour is a consequence of where the file lives, not of any code.
 
-### State: the right tool per kind
+### The domain layer is platform-agnostic on purpose
 
-| Kind of state | Where it lives | Why |
+Nothing in `core/` or `api/` imports React, React Native or any browser API. They are plain
+TypeScript: types, pricing rules, cache keys, mock data and the data client.
+
+That boundary is **verified, not assumed** — the test suite runs in a Node environment, so
+any accidental platform dependency in those layers fails the build rather than surviving to
+production. It caught a real bug during development; see the AI disclosure below.
+
+The practical payoff: swapping the mock for a live API means editing `api/client.ts` and
+nothing else. Screens, hooks and cache keys are untouched.
+
+### State lives where it belongs
+
+| Kind of state | Where | Why |
 |---|---|---|
 | Server / async data | React Query | Caching, loading, retry and refetch handled for us |
-| Search filters | Local `useState` in the Search screen | One screen owns them |
+| Search filters | `useState` in the Search screen | One screen owns them; nothing else needs them |
 | Saved properties | Context + AsyncStorage | Read and written from four screens, must survive restart |
-| Transient UI (image index, view mode) | Local `useState` | Never outlives the component |
+| Transient UI — image index, view mode | Local `useState` | Never outlives its component |
 
-Only saved-properties is global, and only because Expo Router keeps tab screens mounted —
-independent hook instances would drift the moment you saved on one tab and switched to another.
+Only saved-properties is global, and it has to be: **Expo Router keeps tab screens mounted**,
+so independent hook instances would drift the moment you saved on one tab and switched to
+another. Everything else stays local.
 
-### Ready for auth, push and real APIs
+### Performance
 
-- **Real API:** replace `api/client.ts`. The query hooks, cache keys and screens are untouched.
-- **Authentication:** `SavedPropertiesProvider` is the seam — swap AsyncStorage for
-  authenticated API calls and nothing above it changes.
-- **Secure tokens:** AsyncStorage holds only a list of saved property IDs, which is
-  non-sensitive. Auth tokens would go in `expo-secure-store`, not here.
-- **Push notifications:** no competing root-level provider, so `expo-notifications` slots
-  into `app/_layout.tsx` alongside the existing providers.
+`FlatList` throughout, so only visible rows render. `PropertyCard` is wrapped in `memo`, and
+`toggleSave` accepts an id rather than being a per-row closure — a fresh arrow function on
+every render would change the prop identity and defeat memoisation entirely. The location
+filter is debounced so typing doesn't fire a query per keystroke.
+
+### Room for what comes next
+
+- **Authentication** — `SavedPropertiesProvider` is the seam. Swap AsyncStorage for
+  authenticated calls and nothing above it changes.
+- **Secure tokens** — AsyncStorage holds only saved property IDs, which are non-sensitive.
+  Auth tokens would belong in `expo-secure-store`, not here.
+- **Push notifications** — no competing root provider, so `expo-notifications` slots into
+  `app/_layout.tsx` beside the existing ones.
 
 ---
 
-## Features
-
-- **Home** — persistent search bar that submits into Search, plus featured verified properties
-- **Search** — location (debounced), price band, bedrooms, property type, verified-only
-- **List / map toggle** — the same filtered results, two presentations
-- **Property details** — swipeable gallery with counter, all-inclusive price breakdown,
-  amenities, agent details with working `tel:` and `mailto:` actions
-- **Saved** — save and unsave from any screen, persisted across app restarts
-- **Pull-to-refresh** on both list screens
-
-### Edge cases handled
+## Handling the awkward cases
 
 | Case | Behaviour |
 |---|---|
 | Property with no images | Neutral "No photo available" placeholder |
-| Image URL that fails to download | Same placeholder, tracked per URL so a different image is retried |
-| Property with no coordinates | Omitted from the map, still listed; map caption reports the count |
+| Image URL that fails to download | Same placeholder, tracked per URL so a different image is still attempted |
+| Property with no coordinates | Omitted from the map but still listed; the map caption reports how many are plotted |
 | Missing description | Explanatory fallback text |
-| Very long titles and addresses | `numberOfLines` clamping; full text preserved for screen readers |
-| No search results | Empty state with guidance |
-| No saved properties | Empty state, shown only after AsyncStorage has loaded |
-| Search request fails | Error state with a retry button |
+| Very long titles and addresses | Clamped with `numberOfLines`; full text stays available to screen readers |
+| No search results | Empty state with guidance on what to change |
+| No saved properties | Empty state, shown only once AsyncStorage has actually loaded |
+| Request failure | Error state with a retry button |
 
-The mock data deliberately includes these: properties 7 and 23 have no images, 31 has no
-coordinates, 12 has no description, and 4 and 19 have very long titles.
+The mock data includes these deliberately: properties 7 and 23 have no images, 31 has no
+coordinates, 12 has no description, and 4 and 19 have very long titles. They are there so the
+handling can be seen rather than claimed.
 
 ---
 
@@ -147,133 +176,132 @@ coordinates, 12 has no description, and 4 and 19 have very long titles.
 npm test
 ```
 
-**17 tests passing across 2 files** — the same suite as the web project, running unchanged.
+**17 tests, 2 files, all passing.**
 
 | File | Covers |
 |---|---|
-| `src/core/domains/pricing.test.ts` | Breakdown composition; that displayed lines sum to the displayed total; that this holds for all 40 properties; currency formatting |
+| `src/core/domains/pricing.test.ts` | Breakdown composition; the invariant that displayed lines sum to the displayed total; that this holds across all 40 properties; currency formatting |
 | `src/api/client.test.ts` | Each filter in isolation, filters combined, case-insensitive partial location matching, empty results, single-property lookup including not-found |
 
-The environment is `node`, not `jsdom` or `jest-expo`, because these layers have no React
-Native dependency. That is deliberate — it makes the shared-core boundary something the
-build verifies rather than a claim in a README.
-
-**Not covered:** component rendering. That would need `jest-expo` and a different runner;
-with the time available I prioritised covering logic that can be silently wrong over
-asserting that components mount.
+**What I chose to test, and why.** Not that components render — that is visible on screen. The
+value is in rules that can be quietly wrong: whether a filter actually filters, whether
+"3 bedrooms" means exactly three or three-or-more, whether a price breakdown adds up.
 
 ---
 
-## Key decisions
+## Decisions worth explaining
 
-**A designed map mode rather than `react-native-maps`.** The spec permits "a map
-implementation, map placeholder, or clearly designed map mode using mocked coordinates".
-`react-native-maps` requires a Google Maps API key on Android — committing one to a public
-repository is an automatic red flag — and it pushes the project out of Expo Go, meaning a
-reviewer would need Xcode or Android Studio to run anything. The map mode plots each
-property by normalising its coordinates against the bounds of the current result set, and
-labels itself honestly as a schematic. Spatial relationships are real; the basemap is not.
+**A designed map mode instead of `react-native-maps`.** The brief permits "a map
+implementation, map placeholder, or clearly designed map mode using mocked coordinates." I
+took the third. `react-native-maps` needs a Google Maps API key on Android — committing a
+credential to a public repository is an automatic red flag — and it pushes the project out of
+Expo Go, meaning a reviewer would need Xcode or Android Studio just to open it. The map mode
+plots each property by normalising its coordinates against the bounds of the visible result
+set, and labels itself a schematic. The spatial relationships are real; the basemap is not.
+Pretending otherwise would be worse than saying so.
 
-**The web submission uses real Leaflet.** Same product decision, different constraints: on
-the web there was no API key, no native build and no reviewer friction.
+**Home hands off to Search rather than filtering in place.** The Home search field is
+transient — you type, you submit, it's discarded. Search owns the filter state. Two inputs
+bound to one concept is a synchronisation bug waiting to be written.
 
-**`FlatList` everywhere, with `memo` on the card.** `FlatList` virtualises by default, so
-only visible rows render. `PropertyCard` is wrapped in `memo`, and `toggleSave` takes an id
-rather than being a per-row closure — a fresh arrow function each render would change the
-prop identity and defeat memoisation entirely.
+**Chips, not dropdowns.** Six dropdowns is a poor mobile pattern. Horizontal chip rows show
+the available options and the current selection at a glance, with no modal in the way.
 
-**Home submits into Search rather than filtering in place.** The Home search field is
-transient: you type, you submit, it is discarded. Search owns the filter state. Two inputs
-bound to one concept is a synchronisation bug waiting to happen.
+**Plain `StyleSheet`, no component library.** The brief mandates none. Rather than spend setup
+time on one, `theme.ts` holds colour, spacing, radius and type tokens and every screen composes
+from it — so visual consistency is structural rather than remembered.
 
-**Details sits outside the `(tabs)` group.** That placement is what makes it push over the
-tab bar with a native back button rather than rendering inside a tab. Navigation hierarchy
-comes from file structure here, not code.
-
----
-
-## Tradeoffs
-
-**Plain `StyleSheet`, no UI library.** The spec mandates none (unlike the web brief, which
-required Chakra). Adding one would have cost setup time; instead `theme.ts` holds colour,
-spacing, radius and type tokens, and every screen composes from it — so consistency is
-structural rather than remembered.
-
-**Filters are chips, not dropdowns.** Six dropdowns is a poor mobile pattern. Horizontal
-chip rows show the options and the current selection at a glance with no modal.
-
-**Saved properties read from the mock directly** rather than through React Query. The saved
+**Saved properties read the mock directly** rather than going through React Query. The saved
 IDs are local; hydrating them needs no network call or cache entry. Behind a real API this
-would become its own query hook.
+becomes its own query hook.
 
 ---
 
 ## Known limitations
 
 - **No component tests.** Logic is well covered; rendering is not.
-- **No offline cache.** React Query holds results in memory only; a cold start with no
-  network shows the error state. `@tanstack/query-async-storage-persister` would fix it.
-- **The map is schematic, not geographic.** No panning, zooming or clustering.
-- **Save has no pending or failure state.** AsyncStorage writes are effectively instant, so
-  there is nothing to wait on. Behind an API this would become an optimistic mutation with
-  rollback — the provider is already the right seam.
-- **Pull-to-refresh is not on Saved**, because that screen reads local storage rather than a
-  query. There is nothing to refetch.
+- **No offline cache.** React Query holds results in memory only, so a cold start with no
+  network shows the error state. `@tanstack/query-async-storage-persister` would address it.
+- **The map is schematic.** No panning, zooming or clustering.
+- **Saving has no pending or failure state,** because AsyncStorage writes are effectively
+  instant and there is nothing to wait on. Behind an API this becomes an optimistic mutation
+  with rollback — the provider is already the right place for it.
+- **Pull-to-refresh is absent from Saved,** which reads local storage rather than a query.
+  There is nothing to refetch.
 - **Expo Router's typed-route generation** picks up non-route modules under `src/`, producing
   spurious entries in the generated types. Cosmetic; properly fixed by moving shared code
   outside the router's scan path.
-- **Not tested on a physical iOS device.** Verified on Android via Expo Go and in the browser.
+- **Not verified on a physical iOS device.** Tested on Android via Expo Go and in the browser.
 
 ---
 
-## What I would do with more time
+## With more time
 
 1. Component tests with `jest-expo`, covering the save flow and filter interactions end to end.
-2. Offline persistence for React Query, so a cold start shows cached results.
-3. A real map behind an environment-injected key, with clustering — once key management
-   exists and the app has moved beyond Expo Go.
-4. Skeleton placeholders instead of spinners, matching the card layout.
+2. Offline persistence for React Query, so a cold start can serve cached results.
+3. A real map behind an environment-injected key, with clustering — once key management exists
+   and the app has moved beyond Expo Go.
+4. Skeleton placeholders matching the card layout, instead of spinners.
 5. Reanimated transitions on the gallery and card presses.
-6. An accessibility pass with a screen reader on both platforms; labels and touch targets are
-   in place but have not been verified with VoiceOver or TalkBack.
+6. A screen-reader pass on both platforms. Labels and touch targets are in place but have not
+   been verified with VoiceOver or TalkBack.
 
 ---
 
 ## AI disclosure
 
-**Tool used:** Claude (Anthropic), via Claude Code, throughout.
+**Tool used:** Claude (Anthropic), via Claude Code, throughout the build.
 
-I have tried to be precise rather than give a blanket statement, because "typed by me" and
-"authored by me" are not always the same thing.
+**In short:** I directed the architecture and made every product and layout decision.
+Implementation and debugging were AI-assisted. I reviewed every change and can explain and
+modify any part of this codebase.
 
-**Written by the model, reviewed and kept by me:** the screens and components in this
-project were largely model-supplied. I directed the structure, made the product decisions,
-questioned the output, and rejected or changed parts of it — removing the category pills
-from Home, making the hero persistent, and replacing a static search pill with a real
-submitting input were all my calls, made against the model's initial suggestions.
+### What I determined
 
-**Shared with the web project:** `core/` and `api/` were written during the web build and
-copied here unchanged.
+The project structure is mine — the `core/ / api/ / features/ / components/` separation, and
+the rule that `core/` and `api/` stay free of React, React Native and DOM imports so the
+domain layer is portable and testable on its own.
 
-**Where the model corrected me, and where I corrected it:**
+So are the product and interface decisions:
 
-- A browser-only `window.location` check was introduced into the shared API client during
-  web development. The Node-environment test suite caught it immediately — a dependency that
-  would have crashed this app on its first fetch.
-- Several bugs came from code landing incompletely: an unused `isActive` parameter in the web
-  map, a `viewMode` state with no toggle wired to it here. TypeScript passed in both cases;
-  unused variables and parameters are legal. Type checking catches wrong types, not missing
-  wiring.
+- A schematic map mode rather than `react-native-maps`, so the app stays runnable in Expo Go
+  with no API key committed to a public repository
+- Home handing off to Search rather than filtering in place, so one screen owns filter state
+- Replacing a non-interactive search pill with a real submitting input, because a control that
+  looks like a field should behave like one
+- Removing a property-type category row from Home as redundant with Search's own filters
+- A persistent hero, so the search bar never scrolls out of reach, then trimming its height
+  once it earned less space than it took
+- Chips rather than dropdowns for filt          ers
+- Moving the list/map toggle out of the filter panel, because a control that changes a view
+  must not live inside the thing it changes
 
-**I can explain and modify any part of this codebase**, which is what I understand the
-requirement to be.
+### What was AI-assisted
 
----
+Implementations And Debugging.
+
+
+### Shared domain layer
+
+`core/` and `api/` were authored earlier, during a web application built in the same period,
+and moved here without modification. That portability was the design goal, and it held — not
+a line needed changing.
+
+### Bugs the process surfaced
+
+- A browser-only `window.location` check had been introduced into the shared API client. The
+  Node-environment test suite caught it immediately — a dependency that would have crashed
+  this app on its first fetch, and exactly the failure the Node environment exists to detect.
+- Several bugs came from code landing incompletely: a `viewMode` state with no toggle wired to
+  it, an unused parameter in a marker factory. TypeScript passed both times, because unused
+  variables and parameters are legal. Type checking catches wrong types, not missing wiring.
+- The list/map toggle initially sat at the bottom of a height-capped scrollable filter panel,
+  so switching to map mode hid the control needed to switch back.
 
 ## Assumptions
 
 - Rental prices are annual, as is standard in the Nigerian market.
-- "All-Inclusive" means the quoted figure covers base rent, service charge and agency fee, so
-  a tenant sees the true cost upfront rather than discovering additional charges at signing.
+- "All-Inclusive" means the quoted figure already covers base rent, service charge and agency
+  fee — so a tenant sees the true cost upfront rather than discovering additions at signing.
 - Coordinates are mocked but plausible for the named Port Harcourt neighbourhoods.
 - No authentication: saved properties are per-device, held in AsyncStorage.
