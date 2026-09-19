@@ -1,11 +1,16 @@
+import { Wordmark } from '@/components/Wordmark';
 import { colors } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerTitle: () => <Wordmark />,
+        headerShadowVisible: false,
+        headerTitleAlign: 'left',
         headerStyle: { backgroundColor: colors.slate },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: '700' },
@@ -16,21 +21,22 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+            headerTitleAlign: 'left',
+            tabBarLabel: 'Home',
+            tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          tabBarLabel: 'Search',
           tabBarIcon: ({ color, size }) => <Ionicons name="search-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
-          title: 'Saved',
+          tabBarLabel: 'Saved',
           tabBarIcon: ({ color, size }) => <Ionicons name="heart-outline" size={size} color={color} />,
         }}
       />
